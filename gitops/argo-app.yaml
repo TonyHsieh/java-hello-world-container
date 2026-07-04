@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: java-hello-world
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/myusername/java-hello-world.git
+    targetRevision: HEAD
+    path: gitops/overlays/dev
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

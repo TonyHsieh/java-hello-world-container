@@ -1,0 +1,65 @@
+name: Build, Push and Deploy
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - 'gitops/**'
+      - 'Plan.md'
+      - 'README.md'
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          # Token needs to have write permission to push the kustomize update back to the repo
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'maven'
+
+      - name: Build with Maven
+        run: mvn clean package
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/java-hello-world:latest
+            ${{ secrets.DOCKER_USERNAME }}/java-hello-world:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Install Kustomize
+        uses: imranismail/setup-kustomize@v2
+
+      - name: Update Kustomize Image Tag
+        run: |
+          cd gitops/overlays/dev
+          kustomize edit set image myusername/java-hello-world=${{ secrets.DOCKER_USERNAME }}/java-hello-world:${{ github.sha }}
+
+      - name: Commit and Push Manifest Changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git commit -am "chore: update dev overlay image tag to ${{ github.sha }} [skip ci]"
+          git push

@@ -20,11 +20,17 @@ This repository contains a simple Java Hello World service, packaged as a contai
 │   ├── project.yaml               # Kargo Project CRD defining the workspace
 │   └── stage-dev.yaml             # Kargo Stage CRD defining dev environment
 ├── src/
-│   └── main/
+│   ├── main/
+│   │   └── java/
+│   │       └── com/
+│   │           └── example/
+│   │               └── HelloWorldApp.java # Java hello world logger
+│   └── test/
 │       └── java/
 │           └── com/
 │               └── example/
-│                   └── HelloWorldApp.java # Java hello world logger
+│                   └── HelloWorldAppTest.java # Unit tests
+
 ├── .dockerignore                  # Files excluded from Docker builds
 ├── Dockerfile                     # Multi-stage Docker build file
 ├── Plan.md                        # Master implementation plan
@@ -36,11 +42,18 @@ This repository contains a simple Java Hello World service, packaged as a contai
 
 ## Local Development & Testing
 
-### 1. Compile & Build Locally (Requires Java 17 + Maven)
+### 1. Compile, Test, & Build Locally (Requires Java 17 + Maven)
+Run unit tests:
+```bash
+mvn test
+```
+
+Build and run application:
 ```bash
 mvn clean package
 java -jar target/java-hello-world-1.0-SNAPSHOT.jar
 ```
+
 
 ### 2. Run with Docker (Requires Docker)
 Build the image:

@@ -44,8 +44,8 @@ jobs:
           context: .
           push: true
           tags: |
-            ${{ secrets.DOCKER_USERNAME }}/java-hello-world:latest
-            ${{ secrets.DOCKER_USERNAME }}/java-hello-world:${{ github.sha }}
+            ${{ secrets.DOCKER_USERNAME }}/java-hello-world-container:latest
+            ${{ secrets.DOCKER_USERNAME }}/java-hello-world-container:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -55,7 +55,7 @@ jobs:
       - name: Update Kustomize Image Tag
         run: |
           cd gitops/overlays/dev
-          kustomize edit set image myusername/java-hello-world=${{ secrets.DOCKER_USERNAME }}/java-hello-world:${{ github.sha }}
+          kustomize edit set image myusername/java-hello-world-container=${{ secrets.DOCKER_USERNAME }}/java-hello-world-container:${{ github.sha }}
 
       - name: Commit and Push Manifest Changes
         run: |

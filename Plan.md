@@ -82,14 +82,32 @@ This document outlines the step-by-step plan to implement a Java Hello World app
 - **Commands:**
   ```bash
   kubectl create namespace argocd
-  kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+  kubectl apply --server-side --force-conflicts -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
   ```
 
 ### Step 4.3: Install Kargo
 - **Objective:** Install the promotion engine on the cluster.
-- **Commands:**
+- **Prerequisite:** Install `cert-manager` (required by Kargo webhooks):
   ```bash
-  kubectl apply -f https://kargo.io/install.yaml
+  kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.15.1/cert-manager.yaml
+  ```
+- **Commands (Install via Helm):**
+  ```bash
+  # 1. Generate password hash (requires apache2-utils for htpasswd)
+  # On Ubuntu/WSL: sudo apt-get install -y apache2-utils
+  PASS=$(openssl rand -base64 48 | tr -d "=+/" | head -c 32)
+  HASHED_PASS=$(htpasswd -bnBC 10 "" $PASS | tr -d ':\n')
+  SIGNING_KEY=$(openssl rand -base64 48 | tr -d "=+/" | head -c 32)
+
+  echo "Kargo Admin Password: $PASS"
+
+  # 2. Deploy Kargo
+  helm upgrade --install kargo oci://ghcr.io/akuity/kargo-charts/kargo \
+    --namespace kargo \
+    --create-namespace \
+    --set api.adminAccount.passwordHash=$HASHED_PASS \
+    --set api.adminAccount.tokenSigningKey=$SIGNING_KEY \
+    --wait
   ```
 
 ### Step 4.4: Configure Kargo Projects & Stages

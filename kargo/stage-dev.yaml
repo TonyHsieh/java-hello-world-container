@@ -2,21 +2,21 @@ apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
 metadata:
   name: dev
-  namespace: java-hello-world-project
+  namespace: java-hello-world-container-project
 spec:
   requestedFreight:
     - origin:
         kind: GitRepository
-        name: java-hello-world-repo
+        name: java-hello-world-container-repo
       sources:
         branches:
           - main
   promotionMechanisms:
     gitRepoUpdates:
-      - repoURL: https://github.com/myusername/java-hello-world.git
+      - repoURL: https://github.com/TonyHsieh/java-hello-world-container.git
         writeBranch: main
         kustomize:
           images:
-            - image: myusername/java-hello-world
+            - image: solidstrider/java-hello-world-container
               path: gitops/overlays/dev
 # Note: Ensure you replace the repoURL and image paths with your actual github repository details.

@@ -80,4 +80,51 @@ Also, ensure that under `Settings` > `Actions` > `General` > `Workflow permissio
 
 ## Setting up the Local Dev Environment
 
-Refer to [Plan.md](file:///home/tonyh/_Projects/java-hello-world-container/Plan.md) for full instructions on setting up Kind, ArgoCD, and Kargo.
+Refer to [Plan.md](file:///home/tonyh/_Projects/java-hello-world-container/Plan.md) for the master implementation plan. Below are the key steps and commands to set up the local cluster and Argo CD.
+
+### 1. Provision the Kind Cluster
+Ensure Docker is running (if using WSL2, ensure Docker Desktop is started or the Docker daemon is active).
+```bash
+kind create cluster --config kind-config.yaml --name dev-cluster
+```
+
+### 2. Install Argo CD
+Create the namespace and apply the Argo CD manifests:
+```bash
+kubectl create namespace argocd
+kubectl apply --server-side --force-conflicts -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+```
+
+### 3. Install Kargo
+Kargo requires `cert-manager` for its admission webhooks. 
+
+First, install `cert-manager`:
+```bash
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.15.1/cert-manager.yaml
+```
+
+Next, generate the required admin credentials (requires `apache2-utils` to run `htpasswd`) and install Kargo using Helm:
+```bash
+# Generate keys
+PASS=$(openssl rand -base64 48 | tr -d "=+/" | head -c 32)
+HASHED_PASS=$(htpasswd -bnBC 10 "" $PASS | tr -d ':\n')
+SIGNING_KEY=$(openssl rand -base64 48 | tr -d "=+/" | head -c 32)
+
+echo "Save your admin password: $PASS"
+
+# Install Kargo
+helm upgrade --install kargo oci://ghcr.io/akuity/kargo-charts/kargo \
+  --namespace kargo \
+  --create-namespace \
+  --set api.adminAccount.passwordHash=$HASHED_PASS \
+  --set api.adminAccount.tokenSigningKey=$SIGNING_KEY \
+  --wait
+```
+
+#### Why use `--server-side` and `--force-conflicts`?
+* **`--server-side`**: Argo CD includes the `applicationsets.argoproj.io` CustomResourceDefinition (CRD) which is extremely large. A default client-side apply will attempt to store the entire definition in the `kubectl.kubernetes.io/last-applied-configuration` annotation. Since Kubernetes limits annotation size to 256 KB (262,144 bytes), this causes client-side apply to fail. Using Server-Side Apply (SSA) bypasses this limit by tracking state on the API server.
+* **`--force-conflicts`**: If any resources were previously applied using client-side apply, the API server will flag field ownership conflicts. Adding `--force-conflicts` resolves these by allowing Server-Side Apply to take over ownership of the fields.
+
+### WSL2 Considerations
+* **Docker Daemon Connection:** Ensure WSL2 integration is enabled in your Docker Desktop settings under **Settings > Resources > WSL integration**.
+* **DNS Resolution Issues:** If you encounter network lookup errors such as `dial tcp: lookup raw.githubusercontent. ...: no such host`, it means WSL2 has lost its connection to DNS. You can resolve this by restarting the WSL environment (run `wsl --shutdown` in Windows PowerShell/CMD, then restart your terminal) or verifying your `/etc/resolv.conf` settings.

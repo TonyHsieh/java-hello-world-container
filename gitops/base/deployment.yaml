@@ -1,22 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: java-hello-world
+  name: java-hello-world-container
   labels:
-    app: java-hello-world
+    app: java-hello-world-container
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: java-hello-world
+      app: java-hello-world-container
   template:
     metadata:
       labels:
-        app: java-hello-world
+        app: java-hello-world-container
     spec:
       containers:
-        - name: java-hello-world
-          image: myusername/java-hello-world:latest
+        - name: java-hello-world-container
+          image: java-hello-world:latest
           imagePullPolicy: IfNotPresent
           env:
             - name: INTERVAL_SECONDS

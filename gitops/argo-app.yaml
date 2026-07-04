@@ -6,7 +6,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/myusername/java-hello-world.git
+    repoURL: https://github.com/TonyHsieh/java-hello-world-container.git
     targetRevision: HEAD
     path: gitops/overlays/dev
   destination:

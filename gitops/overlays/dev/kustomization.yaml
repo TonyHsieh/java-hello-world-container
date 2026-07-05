@@ -1,10 +1,8 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-
 resources:
 - ../../base
-
 images:
 - name: java-hello-world
   newName: solidstrider/java-hello-world-container
-  newTag: 577f12e452f26f965c6b1a74c456d2a9d95f51fd
+  newTag: 9b8facd7714bdcab669ee77204988770861ec367

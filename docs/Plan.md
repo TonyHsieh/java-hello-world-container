@@ -188,3 +188,121 @@ This document outlines the step-by-step plan to implement a Java Hello World app
    * Or open the Kargo Dashboard, click on your project, select the new Freight, and click **Promote**.
 5. **Verify Kargo Promotion Commit:** Confirm that Kargo clones the repo, modifies `gitops/overlays/dev/kustomization.yaml` with the new SHA tag, commits the change with a `[skip ci]` flag, and pushes it back to GitHub.
 6. **Verify Argo CD Deployment:** Confirm that Argo CD detects Kargo's commit, syncs it, and rolls out the updated container in the Kind cluster's `dev` namespace.
+
+---
+
+## Phase 6: Multi-Environment Expansion (Dev-Shared, QA, Stage, Prod)
+
+As the project scales from a single local environment to multiple shared environments, you can implement robust promotions, verification testing, and gate controls.
+
+### 1. Repository Directory Structure Expansion
+Extend the `gitops/` overlays to support each target environment and cluster config:
+```
+gitops/
+├── base/                     # Core templates
+└── overlays/
+    ├── dev-local/            # Local developer playground (current)
+    ├── dev-shared/           # Shared dev cluster integration branch
+    ├── qa/                   # Automated QA environment (runs tests)
+    ├── stage/                # Pre-production environment (matches prod)
+    └── prod/                 # Production environment (highly locked down)
+```
+
+### 2. Kargo Stage Chain Configuration
+You define separate Stage files inside `kargo/` to build a promotion pipeline. Each stage references its upstream "parent" stage under `spec.requestedFreight`:
+
+* **`dev-shared`** (`kargo/stage-dev-shared.yaml`):
+  * **Upstream:** Requests Freight directly from the `Warehouse`.
+  * **Promotion:** Auto-promotes (via `ProjectConfig`).
+* **`qa`** (`kargo/stage-qa.yaml`):
+  * **Upstream:** Requests Freight only after it has successfully deployed to `dev-shared`.
+  * **Promotion:** Auto-promotes upon validation of `dev-shared`.
+  * **Gate (Verification):** Run automated API and regression tests (smoke tests) via a Kubernetes `Job` or Argo Rollouts `AnalysisTemplate`:
+    ```yaml
+    spec:
+      verification:
+        analysisTemplates:
+          - name: qa-integration-tests
+    ```
+* **`stage`** (`kargo/stage-stage.yaml`):
+  * **Upstream:** Requests Freight only after it passes the `qa` verification gate.
+  * **Promotion:** Auto-promotes (toggled to `true` in `ProjectConfig` for seamless continuous delivery).
+* **`prod`** (`kargo/stage-prod.yaml`):
+  * **Upstream:** Requests Freight that was verified in `stage`.
+  * **Promotion:** Manual promotion ONLY (`autoPromotionEnabled: false`). Requires explicit developer approval via Kargo UI/CLI.
+  * **Gate 1 (Soak Time):** Prevents deployment until the Freight has "soaked" (run stably) in `stage` for a specified period:
+    ```yaml
+    spec:
+      requestedFreight:
+        - origin:
+            kind: Warehouse
+            name: java-hello-world-container-warehouse
+          sources:
+            stages:
+              - stage
+            requiredSoakTime: 2h0m
+    ```
+  * **Gate 2 (SemVer constraint):** Restricts production to only accept formal releases (e.g. `v1.2.3`), ignoring dev Git SHA builds:
+    ```yaml
+    spec:
+      requestedFreight:
+        - origin:
+            kind: Warehouse
+            name: java-hello-world-container-warehouse
+          sources:
+            stages:
+              - stage
+          allowTagsRegexes:
+            - "^v[0-9]+\\.[0-9]+\\.[0-9]+$"
+    ```
+
+### 3. Argo CD Scaling (ApplicationSets)
+Instead of managing individual, manual Argo CD application manifests for each environment, deploy an **Argo CD ApplicationSet** (e.g., `gitops/argo-appset.yaml`).
+
+The ApplicationSet uses a **List Generator** or **Git Directory Generator** to dynamically template applications for all overlays:
+```yaml
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: java-hello-world-appset
+  namespace: argocd
+spec:
+  generators:
+    - list:
+        elements:
+          - env: dev-local
+            destServer: https://kubernetes.default.svc
+          - env: qa
+            destServer: https://qa-cluster-api.internal
+          - env: stage
+            destServer: https://stage-cluster-api.internal
+          - env: prod
+            destServer: https://prod-cluster-api.internal
+  template:
+    metadata:
+      name: java-hello-world-container-{{env}}
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/TonyHsieh/java-hello-world-container.git
+        targetRevision: HEAD
+        path: gitops/overlays/{{env}}
+      destination:
+        server: '{{destServer}}'
+        namespace: '{{env}}'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+```
+
+### 4. Configuration Reference Mapping:
+
+| Objective | Configuration Resource | File Path |
+| :--- | :--- | :--- |
+| **Pipeline Stages & Upstreams** | `Stage` (`spec.requestedFreight`) | `kargo/stage-*.yaml` |
+| **Soak Times & Tag Restrictions** | `Stage` (`sources.requiredSoakTime`/`allowTagsRegexes`) | `kargo/stage-prod.yaml` |
+| **Automated Verification Tests** | `Stage` (`spec.verification.analysisTemplates`) | `kargo/stage-qa.yaml` |
+| **Auto vs Manual Promotion switches**| `ProjectConfig` (`spec.promotionPolicies`) | `kargo/project-config.yaml` |
+| **Dynamic Argo CD Deployments** | `ApplicationSet` | `gitops/argo-appset.yaml` |
+

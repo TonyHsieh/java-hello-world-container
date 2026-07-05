@@ -229,3 +229,20 @@ helm upgrade --install kargo oci://ghcr.io/akuity/kargo-charts/kargo \
 ### WSL2 Considerations
 * **Docker Daemon Connection:** Ensure WSL2 integration is enabled in your Docker Desktop settings under **Settings > Resources > WSL integration**.
 * **DNS Resolution Issues:** If you encounter network lookup errors such as `dial tcp: lookup raw.githubusercontent. ...: no such host`, it means WSL2 has lost its connection to DNS. You can resolve this by restarting the WSL environment (run `wsl --shutdown` in Windows PowerShell/CMD, then restart your terminal) or verifying your `/etc/resolv.conf` settings.
+
+---
+
+## Scalability & Multi-Environment Support (QA, Stage, Prod)
+
+As you scale from a local cluster to a full multi-environment pipeline (e.g., Shared Dev, QA, Stage, and Prod), you can add the following advanced GitOps controls to your configuration:
+
+1. **Pipeline Chains & Soak Times:**
+   Configure downstream stages in Kargo (like `qa`, `stage`, and `prod`) to require upstream promotion. For example, configure `prod` to prevent deployment until a version has "soaked" (remained stable) in `stage` for a specified period (e.g., `requiredSoakTime: 2h`).
+2. **Automated Verification:**
+   Reference test templates (`AnalysisTemplates` or Kubernetes `Jobs`) under a Stage's `spec.verification` block in Kargo. When a new image is promoted to `qa`, Kargo automatically runs the tests; if they fail, the promotion rolls back and is blocked from proceeding to `stage` and `prod`.
+3. **Manual Approvals:**
+   Gating production deployments by disabling auto-promotions in `kargo/project-config.yaml` (`autoPromotionEnabled: false`). This requires an administrator to explicitly approve the release card via the Kargo UI or CLI.
+4. **Dynamic Argo CD ApplicationSets:**
+   Instead of defining hardcoded Argo CD Applications for each environment, use an **Argo CD ApplicationSet** (`gitops/argo-appset.yaml`). It automatically creates, updates, and deletes Argo CD applications for overlays like `overlays/qa/`, `overlays/stage/`, etc., across multiple destination namespaces and clusters.
+
+For complete implementation steps and YAML configurations, refer to **[docs/Plan.md](file:///home/tonyh/_Projects/java-hello-world-container/docs/Plan.md#phase-6-multi-environment-expansion-dev-shared-qa-stage-prod)**.

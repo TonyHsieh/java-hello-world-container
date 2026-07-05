@@ -5,6 +5,6 @@ resources:
 - ../../base
 
 images:
-  - name: java-hello-world
-    newName: solidstrider/java-hello-world-container
-    newTag: latest
+- name: java-hello-world
+  newName: solidstrider/java-hello-world-container
+  newTag: 2ac60bdeb4b0a1b0f26779cc3f569344ccbf5adf

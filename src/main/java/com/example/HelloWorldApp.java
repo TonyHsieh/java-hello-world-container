@@ -10,7 +10,7 @@ public class HelloWorldApp {
         String rateEnv = System.getenv("INTERVAL_SECONDS");
         long intervalSeconds = parseInterval(rateEnv);
 
-        System.out.println("Starting Java Hello World Service...");
+        System.out.println("Starting Java Hello World Service v0.0.1 ...");
         System.out.println("Output interval: " + intervalSeconds + " seconds.");
 
         while (true) {
@@ -38,7 +38,7 @@ public class HelloWorldApp {
     }
 
     public static String formatHelloMessage(LocalDateTime dateTime) {
-        return "v0.0.1 - Hello World - " + dateTime.format(FORMATTER);
+        return "Hello World - " + dateTime.format(FORMATTER);
     }
 }
 

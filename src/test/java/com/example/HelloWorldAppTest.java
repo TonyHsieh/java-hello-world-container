@@ -35,4 +35,9 @@ public class HelloWorldAppTest {
         String expectedMessage = "Hello World - 2026-07-04 12:30:45";
         assertEquals(expectedMessage, HelloWorldApp.formatHelloMessage(testTime));
     }
+
+    @Test
+    public void testVersion() {
+        assertEquals("v0.0.2", HelloWorldApp.VERSION);
+    }
 }

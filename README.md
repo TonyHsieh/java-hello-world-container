@@ -69,6 +69,18 @@ Run the container:
 docker run --env INTERVAL_SECONDS=5 myusername/java-hello-world
 ```
 
+### 3. View Cluster Logs (Kubernetes)
+To view the output of the application running in the development namespace (`dev`) on the local Kind cluster:
+
+* **Fetch all logs for the deployment:**
+  ```bash
+  kubectl logs deployment/java-hello-world-container -n dev
+  ```
+* **Stream logs in real-time (Follow):**
+  ```bash
+  kubectl logs -f deployment/java-hello-world-container -n dev
+  ```
+
 ---
 
 ## GitHub Actions Secret Configuration

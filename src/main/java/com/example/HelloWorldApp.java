@@ -4,13 +4,14 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 public class HelloWorldApp {
+    public static final String VERSION = "v0.0.2";
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     public static void main(String[] args) {
         String rateEnv = System.getenv("INTERVAL_SECONDS");
         long intervalSeconds = parseInterval(rateEnv);
 
-        System.out.println("Starting Java Hello World Service v0.0.1 ...");
+        System.out.println("Starting Java Hello World Service " + VERSION + " ...");
         System.out.println("Output interval: " + intervalSeconds + " seconds.");
 
         while (true) {

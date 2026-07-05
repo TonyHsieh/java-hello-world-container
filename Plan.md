@@ -110,13 +110,27 @@ This document outlines the step-by-step plan to implement a Java Hello World app
     --wait
   ```
 
-### Step 4.4: Configure Kargo Projects & Stages
+### Step 4.4: Accessing the Dashboards (UIs)
+- **Objective:** Access the web-based interfaces for Argo CD and Kargo.
+- **Argo CD:**
+  1. Port-forward: `kubectl port-forward svc/argocd-server -n argocd 8080:443`
+  2. URL: `https://localhost:8080` (bypass certificate warning)
+  3. Credentials: Username `admin`, password retrieved via:
+     `kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d`
+- **Kargo:**
+  * **Option A (CLI):** Run `kargo dashboard`.
+  * **Option B (Manual Port-Forward):**
+    1. Port-forward: `kubectl port-forward svc/kargo-api -n kargo 8081:443`
+    2. URL: `https://localhost:8081`
+    3. Credentials: Log in using the admin password generated in Step 4.3.
+
+### Step 4.5: Configure Kargo Projects & Stages
 - **Objective:** Define the promotion workflow pipeline.
 - **Deliverables:**
   - `kargo/project.yaml`
   - `kargo/stage-dev.yaml` tracking repository freight.
 
-### Step 4.5: Configure Argo CD Application
+### Step 4.6: Configure Argo CD Application
 - **Objective:** Point Argo CD to the `gitops/overlays/dev/` directory on the cluster.
 - **Deliverables:** `gitops/argo-app.yaml` applied via `kubectl apply -f gitops/argo-app.yaml`.
 

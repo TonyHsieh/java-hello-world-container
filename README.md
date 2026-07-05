@@ -121,6 +121,34 @@ helm upgrade --install kargo oci://ghcr.io/akuity/kargo-charts/kargo \
   --wait
 ```
 
+### 4. Accessing the Dashboards (UIs)
+
+#### Argo CD Dashboard
+1. **Port-Forward the service:**
+   ```bash
+   kubectl port-forward svc/argocd-server -n argocd 8080:443
+   ```
+2. **Access URL:** Open **`https://localhost:8080`** in your browser (bypass the self-signed certificate warning).
+3. **Credentials:**
+   * **Username:** `admin`
+   * **Password:** Retrieve the default admin password:
+     ```bash
+     kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
+     ```
+
+#### Kargo Dashboard
+* **Option A (CLI):** If you have the Kargo CLI installed, simply run:
+  ```bash
+  kargo dashboard
+  ```
+* **Option B (Manual Port-Forward):**
+  1. Port-forward the API service:
+     ```bash
+     kubectl port-forward svc/kargo-api -n kargo 8081:443
+     ```
+  2. Access **`https://localhost:8081`** in your browser.
+  3. Log in using the admin password generated during the Helm installation step above.
+
 #### Why use `--server-side` and `--force-conflicts`?
 * **`--server-side`**: Argo CD includes the `applicationsets.argoproj.io` CustomResourceDefinition (CRD) which is extremely large. A default client-side apply will attempt to store the entire definition in the `kubectl.kubernetes.io/last-applied-configuration` annotation. Since Kubernetes limits annotation size to 256 KB (262,144 bytes), this causes client-side apply to fail. Using Server-Side Apply (SSA) bypasses this limit by tracking state on the API server.
 * **`--force-conflicts`**: If any resources were previously applied using client-side apply, the API server will flag field ownership conflicts. Adding `--force-conflicts` resolves these by allowing Server-Side Apply to take over ownership of the fields.

@@ -38,6 +38,6 @@ public class HelloWorldAppTest {
 
     @Test
     public void testVersion() {
-        assertEquals("v0.0.2", HelloWorldApp.VERSION);
+        assertEquals("v0.0.3", HelloWorldApp.VERSION);
     }
 }

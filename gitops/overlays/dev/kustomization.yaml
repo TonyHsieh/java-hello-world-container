@@ -2,8 +2,11 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
-  - ../../base
+- ../../base
 
 images:
-  - name: solidstrider/java-hello-world-container
-    newTag: latest
+- name: myusername/java-hello-world-container
+  newName: solidstrider/java-hello-world-container
+  newTag: e3a9c3524a7d3faea33994aaa6a10f2ff3a59264
+- name: solidstrider/java-hello-world-container
+  newTag: latest

@@ -7,4 +7,4 @@ resources:
 images:
 - name: java-hello-world
   newName: solidstrider/java-hello-world-container
-  newTag: 2ac60bdeb4b0a1b0f26779cc3f569344ccbf5adf
+  newTag: 577f12e452f26f965c6b1a74c456d2a9d95f51fd

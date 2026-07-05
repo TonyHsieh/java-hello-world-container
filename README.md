@@ -19,6 +19,7 @@ This repository contains a simple Java Hello World service, packaged as a contai
 ├── kargo/                         # Kargo promotion engine configuration
 │   ├── git-credentials.yaml       # GitHub write access credentials (ignored by git)
 │   ├── project.yaml               # Kargo Project declaration
+│   ├── project-config.yaml        # Kargo Project config enabling auto-promotion
 │   ├── warehouse.yaml             # Kargo Warehouse watching Docker Hub
 │   └── stage-dev.yaml             # Kargo Stage defining dev promotion workflow
 ├── src/

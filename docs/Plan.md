@@ -133,13 +133,15 @@ This document outlines the step-by-step plan to implement a Java Hello World app
 - **2. Define Credentials Template:**
   * Configure credentials secret in `kargo/git-credentials.yaml` using your GitHub username and the PAT as the password.
   * Apply: `kubectl apply -f kargo/git-credentials.yaml`
-- **3. Configure Project, Warehouse, and Stage:**
+- **3. Configure Project, Warehouse, Stage, and Auto-Promotion:**
   * `kargo/project.yaml`: Declares the Kargo Project namespace `java-hello-world-container-project`.
+  * `kargo/project-config.yaml`: Defines promotion policies (e.g. `autoPromotionEnabled: true` for the `dev` stage).
   * `kargo/warehouse.yaml`: Subscribes Kargo to the Docker Hub image `solidstrider/java-hello-world-container` matching 40-character Git commit SHAs.
   * `kargo/stage-dev.yaml`: Configures the promotion template utilizing Kargo's `git-clone`, `kustomize-set-image`, `git-commit`, and `git-push` steps to promote new images to the `dev` overlay.
 - **4. Apply Configs to Cluster:**
   ```bash
   kubectl apply -f kargo/project.yaml
+  kubectl apply -f kargo/project-config.yaml
   kubectl apply -f kargo/warehouse.yaml
   kubectl apply -f kargo/stage-dev.yaml
   ```

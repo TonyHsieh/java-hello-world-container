@@ -4,3 +4,4 @@ target/
 .DS_Store
 *.log
 _ignore/
+kargo/git-credentials.yaml

@@ -38,7 +38,7 @@ public class HelloWorldApp {
     }
 
     public static String formatHelloMessage(LocalDateTime dateTime) {
-        return "Hello World - " + dateTime.format(FORMATTER);
+        return "v0.0.1 - Hello World - " + dateTime.format(FORMATTER);
     }
 }
 

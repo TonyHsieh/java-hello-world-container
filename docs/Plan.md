@@ -135,7 +135,8 @@ This document outlines the step-by-step plan to implement a Java Hello World app
   * Apply: `kubectl apply -f kargo/git-credentials.yaml`
 - **3. Configure Project, Warehouse, Stage, and Auto-Promotion:**
   * `kargo/project.yaml`: Declares the Kargo Project namespace `java-hello-world-container-project`.
-  * `kargo/project-config.yaml`: Defines promotion policies (e.g. `autoPromotionEnabled: true` for the `dev` stage).
+  * `kargo/project-config.yaml`: Defines promotion policies (e.g., `autoPromotionEnabled: true` for the `dev` stage).
+    * *Why this is OK for local dev:* In local development, the goal is rapid iteration and fast feedback. Automating promotions to the `dev` environment bypasses the need for manual clicks in the Kargo UI or CLI commands for every commit. While production/higher stages remain gated behind manual approval in standard GitOps, auto-promotion in `dev` creates a seamless, fully automated local testing loop.
   * `kargo/warehouse.yaml`: Subscribes Kargo to the Docker Hub image `solidstrider/java-hello-world-container` matching 40-character Git commit SHAs.
   * `kargo/stage-dev.yaml`: Configures the promotion template utilizing Kargo's `git-clone`, `kustomize-set-image`, `git-commit`, and `git-push` steps to promote new images to the `dev` overlay.
 - **4. Apply Configs to Cluster:**

@@ -139,7 +139,8 @@ sequenceDiagram
    * Kargo's `Warehouse` resource constantly polls Docker Hub for new tags matching a 40-character commit SHA pattern.
    * Upon discovering the new tag, the Warehouse packages it as a new **Freight** artifact in the cluster.
 6. **GitOps Promotion (CD):**
-   * The Freight is promoted to the `dev` stage (either automatically or manually via Kargo CLI/Dashboard).
+   * The Freight is automatically promoted to the `dev` stage (configured via `kargo/project-config.yaml`).
+     * *Why auto-promotion is enabled for local dev:* During development, requiring manual approvals for every commit introduces unnecessary friction. Auto-promotion ensures a fast, hands-off local testing loop. In a production pipeline, this setting would be `false` to require a gatekeeper's approval before deployment.
    * Kargo executes the promotion template: it clones the repository, runs Kustomize to update the target image tag in `gitops/overlays/dev/kustomization.yaml` to the new Git Commit SHA, commits the changes with `[skip ci]`, and pushes them back to `main` using your Git Credentials Secret.
 7. **Argo CD Sync:**
    * Argo CD continuously monitors the repository's `gitops/` directory.

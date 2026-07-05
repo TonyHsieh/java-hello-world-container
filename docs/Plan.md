@@ -124,11 +124,43 @@ This document outlines the step-by-step plan to implement a Java Hello World app
     2. URL: `https://localhost:8081`
     3. Credentials: Log in using the admin password generated in Step 4.3.
 
-### Step 4.5: Configure Kargo Projects & Stages
-- **Objective:** Define the promotion workflow pipeline.
-- **Deliverables:**
-  - `kargo/project.yaml`
-  - `kargo/stage-dev.yaml` tracking repository freight.
+### Step 4.5: Configure Kargo Projects, Warehouses, Stages & Git Credentials
+- **Objective:** Define Kargo GitOps pipeline config and grant it write access to GitHub.
+- **1. Generate GitHub Personal Access Token (PAT):**
+  * Generate a **Fine-grained PAT** (Settings > Developer Settings > Personal Access Tokens > Fine-grained tokens).
+  * Set repository scope to **Only select repositories** -> `java-hello-world-container`.
+  * Grant **Repository permissions** -> **Contents**: `Read and write` (which automatically sets **Metadata** to `Read-only`).
+- **2. Define Credentials Template:**
+  * Configure credentials secret in `kargo/git-credentials.yaml` using your GitHub username and the PAT as the password.
+  * Apply: `kubectl apply -f kargo/git-credentials.yaml`
+- **3. Configure Project, Warehouse, and Stage:**
+  * `kargo/project.yaml`: Declares the Kargo Project namespace `java-hello-world-container-project`.
+  * `kargo/warehouse.yaml`: Subscribes Kargo to the Docker Hub image `solidstrider/java-hello-world-container` matching 40-character Git commit SHAs.
+  * `kargo/stage-dev.yaml`: Configures the promotion template utilizing Kargo's `git-clone`, `kustomize-set-image`, `git-commit`, and `git-push` steps to promote new images to the `dev` overlay.
+- **4. Apply Configs to Cluster:**
+  ```bash
+  kubectl apply -f kargo/project.yaml
+  kubectl apply -f kargo/warehouse.yaml
+  kubectl apply -f kargo/stage-dev.yaml
+  ```
+- **5. Sanity Check Kargo Integration:**
+  * **Verify Resources:** Ensure Kargo objects are live:
+    ```bash
+    kubectl get projects.kargo.akuity.io
+    kubectl get warehouses,stages -n java-hello-world-container-project
+    ```
+  * **Verify Credentials:** Check that the repository secret exists:
+    ```bash
+    kubectl get secret github-repo-credentials -n java-hello-world-container-project
+    ```
+  * **Verify Warehouse Connection:** Check that the Warehouse is polling Docker Hub successfully:
+    ```bash
+    kubectl describe warehouse java-hello-world-container-warehouse -n java-hello-world-container-project
+    ```
+  * **Verify Freight Generation:** Confirm Kargo discovered your tags and generated a Freight object:
+    ```bash
+    kubectl get freight -n java-hello-world-container-project
+    ```
 
 ### Step 4.6: Configure Argo CD Application
 - **Objective:** Point Argo CD to the `gitops/overlays/dev/` directory on the cluster.
@@ -136,9 +168,20 @@ This document outlines the step-by-step plan to implement a Java Hello World app
 
 ---
 
-## Phase 5: Verification & Testing
+## Phase 5: Verification & Testing (Kargo Flow)
 
-1. **Trigger CI:** Make a change in the Java log message, commit, and push.
-2. **Verify Registry:** Confirm the DockerHub repository is updated with a new image tagged with the Git commit SHA.
-3. **Verify GitOps Config:** Confirm GitHub Actions updated the `overlays/dev/kustomization.yaml` image tag in Git.
-4. **Verify Promotion/Sync:** Monitor Argo CD console or use CLI to confirm that the new container is pulled and deployed in the cluster.
+1. **Trigger CI:** Make a change in the Java log message in `src/main/java/com/example/HelloWorldApp.java`, commit, and push to main.
+2. **Verify Image Build:** Confirm the GitHub Actions workflow successfully compiles and pushes the new image (`solidstrider/java-hello-world-container:<SHA>`) to Docker Hub.
+3. **Verify Kargo Freight Discovery:**
+   * Confirm that Kargo's Warehouse discovers the new tag and generates a new Freight resource:
+     ```bash
+     kubectl get freight -n java-hello-world-container-project
+     ```
+4. **Promote the Freight (Manually or Automatically):**
+   * Promote the Freight to the `dev` stage using the Kargo CLI:
+     ```bash
+     kargo stage promote dev-cluster dev --project java-hello-world-container-project --freight <freight-name>
+     ```
+   * Or open the Kargo Dashboard, click on your project, select the new Freight, and click **Promote**.
+5. **Verify Kargo Promotion Commit:** Confirm that Kargo clones the repo, modifies `gitops/overlays/dev/kustomization.yaml` with the new SHA tag, commits the change with a `[skip ci]` flag, and pushes it back to GitHub.
+6. **Verify Argo CD Deployment:** Confirm that Argo CD detects Kargo's commit, syncs it, and rolls out the updated container in the Kind cluster's `dev` namespace.

@@ -6,17 +6,43 @@ metadata:
 spec:
   requestedFreight:
     - origin:
-        kind: GitRepository
-        name: java-hello-world-container-repo
+        kind: Warehouse
+        name: java-hello-world-container-warehouse
       sources:
-        branches:
-          - main
-  promotionMechanisms:
-    gitRepoUpdates:
-      - repoURL: https://github.com/TonyHsieh/java-hello-world-container.git
-        writeBranch: main
-        kustomize:
-          images:
-            - image: solidstrider/java-hello-world-container
-              path: gitops/overlays/dev
-# Note: Ensure you replace the repoURL and image paths with your actual github repository details.
+        direct: true
+  promotionTemplate:
+    spec:
+      vars:
+        - name: gitRepo
+          value: https://github.com/TonyHsieh/java-hello-world-container.git
+        - name: imageRepo
+          value: solidstrider/java-hello-world-container
+      steps:
+        # 1. Clone the repository
+        - uses: git-clone
+          config:
+            repoURL: ${{ vars.gitRepo }}
+            checkout:
+              - branch: main
+                path: ./src
+
+        # 2. Update the image in kustomization.yaml
+        - uses: kustomize-set-image
+          config:
+            path: ./src/gitops/overlays/dev
+            images:
+              - image: java-hello-world
+                newName: ${{ vars.imageRepo }}
+                tag: ${{ imageFrom(vars.imageRepo).Tag }}
+
+        # 3. Commit the changes
+        - uses: git-commit
+          config:
+            path: ./src
+            message: "Promote image to ${{ imageFrom(vars.imageRepo).Tag }} [skip ci]"
+
+        # 4. Push the changes
+        - uses: git-push
+          config:
+            path: ./src
+            targetBranch: main

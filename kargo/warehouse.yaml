@@ -1,0 +1,12 @@
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Warehouse
+metadata:
+  name: java-hello-world-container-warehouse
+  namespace: java-hello-world-container-project
+spec:
+  subscriptions:
+    - image:
+        repoURL: solidstrider/java-hello-world-container
+        imageSelectionStrategy: NewestBuild
+        allowTagsRegexes:
+          - "^[0-9a-f]{40}$"

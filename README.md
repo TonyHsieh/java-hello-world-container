@@ -16,9 +16,11 @@ This repository contains a simple Java Hello World service, packaged as a contai
 │   └── overlays/
 │       └── dev/
 │           └── kustomization.yaml # Development overlay patching the image tag
-├── kargo/                         # (Planned) Kargo promotion engine configuration
-│   ├── project.yaml               # Kargo Project CRD defining the workspace
-│   └── stage-dev.yaml             # Kargo Stage CRD defining dev environment
+├── kargo/                         # Kargo promotion engine configuration
+│   ├── git-credentials.yaml       # GitHub write access credentials (ignored by git)
+│   ├── project.yaml               # Kargo Project declaration
+│   ├── warehouse.yaml             # Kargo Warehouse watching Docker Hub
+│   └── stage-dev.yaml             # Kargo Stage defining dev promotion workflow
 ├── src/
 │   ├── main/
 │   │   └── java/
@@ -31,9 +33,10 @@ This repository contains a simple Java Hello World service, packaged as a contai
 │               └── example/
 │                   └── HelloWorldAppTest.java # Unit tests
 
+├── docs/
+│   └── Plan.md                    # Master implementation plan
 ├── .dockerignore                  # Files excluded from Docker builds
 ├── Dockerfile                     # Multi-stage Docker build file
-├── Plan.md                        # Master implementation plan
 ├── pom.xml                        # Maven dependency and build manifest
 └── README.md                      # Quickstart documentation
 ```
@@ -78,9 +81,65 @@ Also, ensure that under `Settings` > `Actions` > `General` > `Workflow permissio
 
 ---
 
+## CI/CD and GitOps Workflow Sequence
+
+Below is the step-by-step lifecycle of a code change, showing how it goes from local testing to automated production rollout via Kargo and Argo CD (GitOps):
+
+```mermaid
+sequenceDiagram
+    actor Developer
+    participant Git as GitHub Repository
+    participant Actions as GitHub Actions (CI)
+    participant Registry as Docker Hub
+    participant Kargo as Kargo (CD Promotion)
+    participant ArgoCD as Argo CD (Sync)
+    participant Cluster as Local Cluster (Kind)
+
+    Developer->>Developer: 1. Edit code & run local tests (mvn test)
+    Developer->>Git: 2. Push branch & merge PR to main
+    Git->>Actions: 3. Trigger build-and-push workflow
+    Actions->>Actions: 4. Build Java jar & Docker container
+    Actions->>Registry: 5. Push container image with Commit SHA tag
+    Registry->>Kargo: 6. Warehouse detects new image tag (Freight)
+    Kargo->>Git: 7. Promote Freight -> updates overlays/dev & pushes [skip ci]
+    ArgoCD->>Git: 8. Poll repository & detect new config commit
+    ArgoCD->>Cluster: 9. Sync and apply updated deployment
+    Cluster->>Registry: 10. Pull new container image & run rolling update
+```
+
+### Detailed Sequence of Events:
+1. **Local Development & Verification:**
+   * The developer modifies files (e.g., updates Java code or edits Kubernetes configuration templates).
+   * The developer runs local verification:
+     ```bash
+     mvn test
+     ```
+2. **Version Control Integration:**
+   * Once tests pass, the developer stages, commits, and pushes the code changes to a feature branch.
+   * A Pull Request (PR) is opened to merge the changes into the `main` branch.
+3. **Triggering CI (Build & Push):**
+   * When the PR is approved and merged into `main`, GitHub Actions detects the push.
+   * It triggers the CI workflow in `.github/workflows/build-and-push.yaml` (since it contains changes outside ignored paths like `gitops/**`, `kargo/**`, etc.).
+4. **Automated Build & Registry Push:**
+   * The runner compiles the code, builds the Docker container, logs into Docker Hub, and pushes the image with tags `latest` and `[commit-sha]`.
+5. **Kargo Freight Discovery:**
+   * Kargo's `Warehouse` resource constantly polls Docker Hub for new tags matching a 40-character commit SHA pattern.
+   * Upon discovering the new tag, the Warehouse packages it as a new **Freight** artifact in the cluster.
+6. **GitOps Promotion (CD):**
+   * The Freight is promoted to the `dev` stage (either automatically or manually via Kargo CLI/Dashboard).
+   * Kargo executes the promotion template: it clones the repository, runs Kustomize to update the target image tag in `gitops/overlays/dev/kustomization.yaml` to the new Git Commit SHA, commits the changes with `[skip ci]`, and pushes them back to `main` using your Git Credentials Secret.
+7. **Argo CD Sync:**
+   * Argo CD continuously monitors the repository's `gitops/` directory.
+   * Upon detecting Kargo's commit, Argo CD automatically syncs the manifests.
+8. **Cluster Rolling Update:**
+   * Argo CD applies the new deployment configuration to the Kind cluster.
+   * The cluster pulls the newly pushed image from Docker Hub and executes a rolling update to roll out the service update without downtime.
+
+---
+
 ## Setting up the Local Dev Environment
 
-Refer to [Plan.md](file:///home/tonyh/_Projects/java-hello-world-container/Plan.md) for the master implementation plan. Below are the key steps and commands to set up the local cluster and Argo CD.
+Refer to [Plan.md](file:///home/tonyh/_Projects/java-hello-world-container/docs/Plan.md) for the master implementation plan. Below are the key steps and commands to set up the local cluster and Argo CD.
 
 ### 1. Provision the Kind Cluster
 Ensure Docker is running (if using WSL2, ensure Docker Desktop is started or the Docker daemon is active).

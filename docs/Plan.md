@@ -169,6 +169,11 @@ This document outlines the step-by-step plan to implement a Java Hello World app
 - **Objective:** Point Argo CD to the `gitops/overlays/dev/` directory on the cluster.
 - **Deliverables:** `gitops/argo-app.yaml` applied via `kubectl apply -f gitops/argo-app.yaml`.
 
+### Step 4.7: Secure Secrets using SOPS and age
+- **Objective:** Encrypt sensitive registry passwords and git tokens before committing them to the repository.
+- **Implementation:** Refer to **[docs/SOPS-AGE-Guide.md](file:///home/tonyh/_Projects/java-hello-world-container/docs/SOPS-AGE-Guide.md)** for detailed installation, key generation, and repository setup instructions for `sops` and `age`.
+- **In-Cluster Decryption:** Deploy the `sops-secrets-operator` in the Kind cluster to automatically scan and decrypt secrets applied by Kargo or Argo CD on-the-fly.
+
 ---
 
 ## Phase 5: Verification & Testing (Kargo Flow)

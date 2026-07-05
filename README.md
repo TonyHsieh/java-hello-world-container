@@ -232,6 +232,15 @@ helm upgrade --install kargo oci://ghcr.io/akuity/kargo-charts/kargo \
 
 ---
 
+## Secret Management with SOPS and age
+
+To secure sensitive configuration files (such as Docker Hub passwords and GitHub PATs) and safely commit them to the repository, you can encrypt them using **SOPS** and **age**. 
+
+* **How it works:** Secrets are encrypted locally using the `age` public key, allowing you to commit the encrypted secret file to Git. During deployment, the `sops-secrets-operator` in the Kubernetes cluster decrypts the file on-the-fly using the `age` private key.
+* **Guide:** For full local installation, key generation, and deployment steps, refer to **[docs/SOPS-AGE-Guide.md](file:///home/tonyh/_Projects/java-hello-world-container/docs/SOPS-AGE-Guide.md)**.
+
+---
+
 ## Scalability & Multi-Environment Support (QA, Stage, Prod)
 
 As you scale from a local cluster to a full multi-environment pipeline (e.g., Shared Dev, QA, Stage, and Prod), you can add the following advanced GitOps controls to your configuration:
